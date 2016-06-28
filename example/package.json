@@ -1,0 +1,21 @@
+{
+  "name": "bds-example",
+  "version": "0.1.0",
+  "author":"Anaphalis",
+  "description": "example for bds",
+  "main": "babel-dev-server.js",
+  "scripts": {},
+  "engines":{
+    "node":">=v5.5.0"
+  },
+  "reqository":{
+    "type":"git",
+    "url":"https://github.com/Anaphalis/babel-dev-server/example"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "babel-preset-es2015": "*",
+    "babel-preset-stage-1": "*",
+    "browserify": "^13.0.0"
+  }
+}
