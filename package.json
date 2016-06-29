@@ -1,7 +1,7 @@
 {
   "name": "babel-dev-server",
   "version": "0.1.0",
-  "author":"Anaphalis",
+  "author":"anaphalis",
   "description": "use babel devlop ES6 application",
   "main": "libs/index.js",
   "scripts": {},

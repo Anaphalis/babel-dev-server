@@ -45,7 +45,7 @@ RequirePath.prototype._formatPathAfter =  function (path){
   //1.路径末尾没有.js，这时应该是直接加上js，还是应该去找下一级的index.js，这太傻逼了
   //为了这个要把每个文件都确定一遍，时间都花这上面太傻逼了，需要建立缓存
   //为了防止多种写法其实指向同一路径，每种写法都做了自己的缓存，还是要把这个解析出来，草了
-  //优先级 path.js|path.node|path/package.json->main|path/index.js|path/index.node|throw error
+  //优先级 path.js|path.node|path.json|path/package.json->main|path/index.js|path/index.node|path/index.json|throw error
   if(path.match(/\.(js|node|json)$/))return path;//完整路径直接返回
   //这里使用同步,首先要过内建列表的映射，来自browserify/lib/builtins.js
   path = buildinMap(path,this.storePath);
