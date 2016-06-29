@@ -41,7 +41,7 @@ Watcher.prototype.check = function(type,path){
   var ext = PATH.extname(path);
   Log.dev(type,path,ext)
   if(this.exts.indexOf(ext)===-1)return
-  if(type === 'unlink') this.nest.pushOrder({type:'remove',entity:path});
+  if(type === 'remove') this.nest.pushOrder({type:'remove',entity:path});
   if(type === 'add'||type === 'change') this.nest.pushOrder({type:'transform',entity:[path]})
 
 }

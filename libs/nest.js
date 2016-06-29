@@ -1,6 +1,4 @@
 //babel作业状态机，保证时序清楚
-var gulp = require('gulp');
-var through = require('through2');
 var babel = require('babel-core');
 var PATH = require('path');
 var fs = require('fs');
@@ -9,6 +7,7 @@ var RequirePath = require('./requirePath.js');
 var shell = require('./shell.js');
 var Output = require('./output.js');
 var Watcher = require('./watcher.js');
+var Filer = require('./filer.js').Filer;
 var Log = require('./log.js');
 //cache设计是关键，减少重复作业，便于更新到文件，一个模块更新时怎么能不重复拼接文件
 function Nest(opts){
@@ -91,39 +90,46 @@ Nest.prototype.idleStart = function(){
 Nest.prototype.parseStart = function(){
   //真正的作业
   Log.dev('状态变更至parse');
-  Log.debug(`作业总数${this.transformList.length}`)
   var _transformList = this.transformList.concat();
-  var l = _transformList.length;
+  var l ;//需要转换的文件个数
   this.transformList = [];//清空队列，全部取出来作业
-  gulp.src(_transformList)
-  .pipe(through.obj((file,enc,cb) => {
-    Log.dev('收到pipe',file.path);
-    var filePath = file.path;
-    var content = file.contents.toString();
-    var result = this._getDependence(content,filePath,this.babelOptions);
-    var relativeFilePath = PATH.relative(this.rootPath,filePath);//相对路径做键
+  Filer(_transformList).then((set)=>{
+    l = set.size;
+    Log.debug(`作业总数${set.size}`)
+    set.forEach((filePath)=>{
+      var relativePath = PATH.relative(this.rootPath,filePath);
+      Log.dev('准备用fs读取的文件路径：',filePath,'相对路径：',relativePath);
+      fs.readFile(filePath,(err,fileBuffer)=>{
+        if(err){
+          Log.error(`读取文件${filePath}错误,跳过,${err}`);
+          l--;
+        }else{
+          var content = fileBuffer.toString();
+          var result = this._getDependence(content,filePath,this.babelOptions);
 
-    if(!this.cache[relativeFilePath])this.cache[relativeFilePath] = {};
-    this.cache[relativeFilePath]['code'] = result.code;//缓存模块代码
-    this.cache[relativeFilePath]['dependence'] = [];
+          if(!this.cache[relativePath])this.cache[relativePath] = {};
+          this.cache[relativePath]['code'] = result.code;//缓存模块代码
+          this.cache[relativePath]['dependence'] = [];
 
-    result.requirePath.forEach((rpo)=>{
-      this.cache[relativeFilePath]['dependence'].push(rpo);
-      //路径过滤
-      //这里的path如果有缓存则不进行作业
-      //有缓存的、在完成队列里的，在等待队列里的都不加入下一次作业
-      if(!this.cache[rpo.relativeFilePath]&&this.transformList.indexOf(rpo.absolutePath)==-1&&this.finishList.indexOf(rpo.absolutePath)==-1)this.transformList.push(rpo.absolutePath);
-    });
-    l--;
-    this.finishList.push(filePath);
-    Log.debug(`完成路径${filePath}的解析，还差${l}个`);
+          result.requirePath.forEach((rpo)=>{
+            this.cache[relativePath]['dependence'].push(rpo);
+            //路径过滤
+            //这里的path如果有缓存则不进行作业
+            //有缓存的、在完成队列里的，在等待队列里的都不加入下一次作业
+            if(!this.cache[rpo.relativePath]&&this.transformList.indexOf(rpo.absolutePath)==-1&&this.finishList.indexOf(rpo.absolutePath)==-1)this.transformList.push(rpo.absolutePath);
+          });
+          l--;
+          this.finishList.push(filePath);
+          Log.debug(`完成路径${filePath}的解析，还差${l}个`);
+        }
+        if(l===0){
+          Log.dev('一轮parse结束以后检查下一组队列',this.transformList)
+          this.state = 'wait';//一轮flush结束
+        }
+      })
+    })
+  })
 
-    if(l===0){
-      Log.dev('一轮parse结束以后检查下一组队列',this.transformList)
-      cb()//不回调不会收到下一个流
-      this.state = 'wait';//一轮flush结束
-    }else {cb()}
-  }))
 }
 Nest.prototype.waitStart = function(){
   Log.dev('状态变更至wait');
@@ -193,6 +199,8 @@ Nest.prototype._getDependence = function(jsFile,filePath,opt){
       _requirePath = [];
       code = jsFile;
     } finally {
+      //console.log('路径:',filePath,'收集到的依赖:',_requirePath)
+
       return {requirePath:_requirePath,code:code};
     }
 

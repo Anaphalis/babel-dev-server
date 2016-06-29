@@ -1,28 +1,27 @@
 {
   "name": "babel-dev-server",
   "version": "0.1.0",
-  "author":"anaphalis",
+  "author": "anaphalis",
   "description": "use babel devlop ES6 application",
   "main": "libs/index.js",
   "scripts": {},
-  "engines":{
-    "node":">=v5.5.0"
+  "engines": {
+    "node": ">=v5.5.0"
   },
-  "reqository":{
-    "type":"git",
-    "url":"https://github.com/Anaphalis/babel-dev-server"
+  "reqository": {
+    "type": "git",
+    "url": "https://github.com/Anaphalis/babel-dev-server"
   },
   "license": "ISC",
   "dependencies": {
     "babel-core": "^6.0.0",
+    "browserify": "^13.0.0",
     "chokidar": "^1.6.0",
-    "gulp": "^3.9.1",
-    "through2": "^2.0.1",
-    "browserify": "^13.0.0"
+    "glob": "^7.0.5"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^2.5.3",
-    "istanbul":"1.0.0-alpha.2"
+    "istanbul": "1.0.0-alpha.2"
   }
 }
