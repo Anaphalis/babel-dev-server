@@ -17,7 +17,6 @@ function Output (opts) {
   })
   this.server = http.createServer((req,res)=>{
     var url = req.url;
-    console.log('url--->',url)
     if(url.match(/\.css/)){
       this.sendCSS(url,req,res)
     }else if(url.match(/\.js/)){
@@ -40,7 +39,6 @@ Output.prototype.sendHTML = function(url,req,res){
     if(_htmlName){
       //重写一个静态中间件能够接受的url
       htmlPath = PATH.join(this.rootPath,urlMap[i].filePath,_htmlName[1])+'.html';
-      console.log(htmlPath);
       finish = true;
       fs.readFile(htmlPath,(err,result)=>{
         if(err)return this.sendError(url,req,res);
