@@ -8,8 +8,9 @@ var shell = require('./shell.js');
 var Output = require('./output.js');
 var Watcher = require('./watcher.js');
 var Filer = require('./filer.js').Filer;
+var requires_filter = require('./ast-filter.js').requires_filter;
 var Log = require('./log.js');
-//cache设计是关键，减少重复作业，便于更新到文件，一个模块更新时怎么能不重复拼接文件
+//cache设计是关键，减少重复作业
 function Nest(opts){
   this.cache = {};
   this.transformList = [];//里面都是文件路径绝对路径
@@ -147,40 +148,23 @@ Nest.prototype.waitStart = function(){
 Nest.prototype._getDependence = function(jsFile,filePath,opt){
   //从js文件中提取正确的依赖
   //fuck有些json文件也特么混进来了卧槽
+  //然后less,css也混进来了..
   if(filePath.match(/\.json$/i)){
     return {requirePath:[],code:jsFile};
-  }else{
+  }
+  else if(filePath.match(/\.less$/i)){
+    Log.warn(`发现less文件${filePath}，应该调用less解析器转换code`);
+    return {requirePath:[],code:jsFile};
+  }
+  else if(filePath.match(/\.css$/i)){
+    Log.info(`发现css文件${filePath}，不做任何转换跳过`);
+    return {requirePath:[],code:jsFile};
+  }
+  else{
     try {
       var babelResult = babel.transform(jsFile,opt);//这里是不是需要try catch
-      var requirePath = [];
-
-      var tokens = babelResult.ast.tokens;
-      var hasBuffer = false;
-      for(var i = 0,l = tokens.length;i<l;i++){
-        //至少后面要有3个token
-        //提取require的路径
-        if(i+3<l
-          &&tokens[i].value === 'require'
-          &&tokens[i].type.label === 'name'
-          &&tokens[i+1].type.label === '('
-          &&tokens[i+3].type.label === ')'){
-            if(tokens[i+2].type.label === 'string'){
-              requirePath.push(tokens[i+2].value);
-            }else{
-              Log.debug('require的path不是字符串',tokens[i+2].value);
-            }
-          }
-        //特殊的后端独有全局对象Buffer，使用不需要require,因此要单独提取
-        //但是buffer模块里不能加，不然就是循环引用
-        if(tokens[i].value === 'Buffer'&&tokens[i].type.label === 'name'){
-          hasBuffer = true;
-        }
-      }
-      if(hasBuffer===true&&filePath!==this.module_buffer_path.absolutePath)requirePath.push('buffer');
-      var imports =  babelResult.metadata.modules.imports;
-      imports.forEach((obj)=>{
-        requirePath.push(obj.source);
-      })
+      var requirePath = requires_filter(babelResult.ast.program);
+      Log.debug('在文件路径',filePath,'下','[获取的依赖]：',requirePath);
       var _requirePath = [];
       requirePath.forEach((ps)=>{
         _requirePath.push(new RequirePath({
@@ -200,37 +184,35 @@ Nest.prototype._getDependence = function(jsFile,filePath,opt){
       code = jsFile;
     } finally {
       //console.log('路径:',filePath,'收集到的依赖:',_requirePath)
-
       return {requirePath:_requirePath,code:code};
     }
-
-
-
   }
 }
 
 // 根据一个入口路径获取所有的模块
 //不应该在parse状态下运行，否则不知道会得到什么东西
 //path为相对文件路径
-// Nest.prototype._getJsFileByName = function(name){
-//   //只能在空闲态下运行
-//   if(this.state!=='idle')return console.log('在错误的状态下调用,_getJsFileByName',this.state);
-//   var _path = PATH.resolve(this.rootPath,this.portalRelativeDirPath,name)
-//   var path = PATH.relative(this.rootPath,_path);
-//   return this._getModulesByRelativePath(path);
-// }
 //cache里的键是相对路径，因此这里输入的路径为相对路径
-Nest.prototype._getModulesByRelativePath = function(path){
+Nest.prototype._getModulesByRelativePath = function(entity){
+  var path = entity.path;
+  var type = entity.type;
   if(this.state!=='idle')return Log.debug('在错误的状态下调用,_getJsFileByName',this.state);
-  Log.dev('申请js文件',path);
+  Log.dev(`申请${type}文件`,path);
   if(!this.cache.hasOwnProperty(path)){
     Log.warn('_getModulesByRelativePath 错误',path)
     return ''
   }
   var _module = {};
+  var _inJsCssModule = {};
   var portal = path;
   var  _dep = function(path,cache){
     if(_module.hasOwnProperty(path))return
+    //不要把css模块混入_module
+    if(path.match(/\.css$/)){
+      if(!_inJsCssModule.hasOwnProperty(path)){
+        _inJsCssModule[path] = cache[path]
+      }
+    }
     _module[path] = cache[path];
     cache[path]['dependence'].forEach((rpo)=>{
       _dep(rpo.relativePath,cache);
@@ -239,13 +221,18 @@ Nest.prototype._getModulesByRelativePath = function(path){
   _dep(portal,this.cache);
   //console.log(Object.keys(_module));
   //console.log(`获取模块结果,入口${portal},模块${Object.keys(_module).length}个`);
+  if(type === 'js'){
+    var jsFile = shell.jsFile(portal,_module);
+    return jsFile;
+  }else if(type === 'in-js-css'){
+    var cssFile = shell.cssFile(portal,_inJsCssModule);
+    return cssFile;
+  }
 
-  var jsFile = shell.jsFile(portal,_module);
-  return jsFile;
 }
 Nest.prototype._removeCacheByFilePath = function(filePath){
   //只能在空闲态下调用
-  //!!!要从完成列表里干掉这个路径
+  //要从完成列表里干掉这个路径
   if(this.state!=='idle')return
   var relativeFilePath = PATH.relative(this.rootPath,filePath);
   if(this.cache[relativeFilePath]){

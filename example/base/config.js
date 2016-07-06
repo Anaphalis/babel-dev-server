@@ -2,7 +2,7 @@ module.exports = {
   babel:{presets:['es2015','stage-1']},
   entry:'src/jsportal/*.js',
   output:{
-    port:3023,
+    port:3020,
     map:[
       {
         urlPath:'/static/js/',

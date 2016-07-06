@@ -6,6 +6,7 @@ var fs = require('fs');
 var PATH = require('path');
 var buildinMap = require('./buildin.js').buildinMap;
 var Log = require('./log.js');
+var Exception = require('./exception.js');
 function RequirePath (opts){
   this.rootPath = opts.rootPath;//工程根目录
   this.storePath = opts.storePath;//node_modules目录
@@ -46,7 +47,7 @@ RequirePath.prototype._formatPathAfter =  function (path){
   //为了这个要把每个文件都确定一遍，时间都花这上面太傻逼了，需要建立缓存
   //为了防止多种写法其实指向同一路径，每种写法都做了自己的缓存，还是要把这个解析出来，草了
   //优先级 path.js|path.node|path.json|path/package.json->main|path/index.js|path/index.node|path/index.json|throw error
-  if(path.match(/\.(js|node|json)$/))return path;//完整路径直接返回
+  if(path.match(/\.(js|node|json|less|css)$/))return path;//完整路径直接返回
   //这里使用同步,首先要过内建列表的映射，来自browserify/lib/builtins.js
   path = buildinMap(path,this.storePath);
   if(fs.existsSync(path+'.js'))return path+'.js';
@@ -57,10 +58,13 @@ RequirePath.prototype._formatPathAfter =  function (path){
     try {
       var json = JSON.parse(fs.readFileSync(PATH.resolve(path,'package.json')).toString());
       var _path = json.browser||json.main;
-      if(_path&&fs.existsSync(PATH.resolve(path,_path)))return PATH.resolve(path,_path)
+      if(_path){
+        if(fs.existsSync(PATH.resolve(path,_path)))return PATH.resolve(path,_path)
+        if(fs.existsSync(PATH.resolve(path,_path+'.js')))return PATH.resolve(path,_path+'.js')
+      }
       //可以考虑信任package.json,去掉上面一句
     } catch (e) {
-      Log.error('解析package.json错误',path,e);
+      Log.error('解析模块',path,'的package.json错误,但并不一定影响获取包文件，一般是因为不规范的package.json写法造成 ',e);
     } finally {
     }
   }

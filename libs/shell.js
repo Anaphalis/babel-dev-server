@@ -5,21 +5,30 @@ function wrap (path,module){
     ref[rpo['refPath']] = rpo['relativePath'];
     if(rpo['refPath'] === 'buffer') buffer = `var Buffer = require('buffer');\r\n`;
   })
-
+  var _code = function(){
+    if(path.match(/\.css/)){
+      return ''
+    }else {
+      return module.code
+    }
+  }
   return `_modules['${path}'] = {exec:function(require,module,exports){
             ${buffer}
-            ${module.code}
+            ${_code()}
           },module:{exports:{}},ref:${JSON.stringify(ref)}};\r\n`
 }
 function head (){
   return `var _modules = Object.create(null);
+          var process = {env:{NODE_ENV:''}};
           var global = {};
           function require(refPath){
             var relativePath = this.ref[refPath];
+            // console.log(refPath,this.ref);
             if(_modules[relativePath].ready)return _modules[relativePath].module.exports;
             return _exec(relativePath)
           }
           function _exec(relativePath){
+            // console.log('_exec',relativePath)
             var _module = _modules[relativePath].module;
             _modules[relativePath].exec(require.bind(_modules[relativePath]),_module,_module.exports);
             _modules[relativePath].ready = true;
@@ -43,4 +52,13 @@ function jsFile (portal,modules){
 
   return all(head(),_modules,portal);
 }
+function cssFile (portal,modules){
+  var head = `/*** generate by Babel-Dev-Server ***/`;
+  var _codes = [];
+  Object.keys(modules).forEach((path)=>{
+    _codes.push(modules[path].code);
+  })
+  return `${head}\r\n${_codes.join('\r\n')}`
+}
 exports.jsFile = jsFile;
+exports.cssFile = cssFile;
