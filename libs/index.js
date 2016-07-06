@@ -42,6 +42,7 @@ function _checkConfig(config){
   if(!config.output.port||!config.output.map)throw '配置错误,output path不存在'
   if(!config.babel)config.babel = {};
   config.watch.path = PATH.resolve(rootPath,config.watch.path);
+  config.output.rootPath = rootPath;
   return config
 }
 

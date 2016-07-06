@@ -10,6 +10,10 @@ module.exports = {
       {
         urlPath:'/static/js/',
         filePath:'src'
+      },
+      {
+        urlPath:'/staticpage/',
+        filePath:'staticpage'
       }
     ]
   },
