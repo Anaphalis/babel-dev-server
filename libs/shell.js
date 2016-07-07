@@ -30,8 +30,14 @@ function head (){
           function _exec(relativePath){
             // console.log('_exec',relativePath)
             var _module = _modules[relativePath].module;
+            if(_modules[relativePath].working){
+              //console.log('模块已经在执行中，不能再次执行',_module.exports,relativePath);
+              return _module.exports
+            }
+            _modules[relativePath].working = true;
             _modules[relativePath].exec(require.bind(_modules[relativePath]),_module,_module.exports);
             _modules[relativePath].ready = true;
+            _modules[relativePath].working = false;
             return _module.exports;
           }\n\r`
 
