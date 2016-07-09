@@ -47,7 +47,7 @@ RequirePath.prototype._formatPathAfter =  function (path){
   //为了这个要把每个文件都确定一遍，时间都花这上面太傻逼了，需要建立缓存
   //为了防止多种写法其实指向同一路径，每种写法都做了自己的缓存，还是要把这个解析出来，草了
   //优先级 path.js|path.node|path.json|path/package.json->main|path/index.js|path/index.node|path/index.json|throw error
-  if(path.match(/\.(js|node|json|less|css)$/))return path;//完整路径直接返回
+  if(path.match(/\.(js|node|json|less|css)$/)&&fs.existsSync(path))return path;//完整路径直接返回
   //这里使用同步,首先要过内建列表的映射，来自browserify/lib/builtins.js
   path = buildinMap(path,this.storePath);
   if(fs.existsSync(path+'.js'))return path+'.js';
@@ -71,8 +71,6 @@ RequirePath.prototype._formatPathAfter =  function (path){
   if(fs.existsSync(PATH.resolve(path,'index.js')))return PATH.resolve(path,'index.js');
   if(fs.existsSync(PATH.resolve(path,'index.node')))return PATH.resolve(path,'index.node');
   if(fs.existsSync(PATH.resolve(path,'index.json')))return PATH.resolve(path,'index.json');
-  //这里还有一种可能，就是Node内置模块
-  var name = PATH.basename(path);
   Log.error('路径解析失败，没有符合条件的路径',path);
   throw new Error('路径错误，中断运行');
 }
