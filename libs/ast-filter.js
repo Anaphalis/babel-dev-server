@@ -197,7 +197,7 @@ parse.Property = function (obj){
   Log.dev('Property')
   if(obj.key.type.match(/Literal/))parse[obj.key.type](obj.key);
   if(obj.key.type==='Identifier')parse.Identifier(obj.key);
-  parse.Expression(obj.value)
+  if(obj.value)parse.Expression(obj.value)
 }
 parse.FunctionExpression = function (obj){
   Log.dev('FunctionExpression');
