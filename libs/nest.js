@@ -33,7 +33,6 @@ function Nest(opts){
       }
     }
   })
-  this.module_buffer_path = new RequirePath({refPath:'buffer',filePath:this.storePath,rootPath:this.rootPath,storePath:this.storePath});
   this.state = 'idle';
 }
 //对等待列表里的路径进行统一作业,如果path不为空，就把path和等待列表合并一起flush
@@ -163,7 +162,7 @@ Nest.prototype._getDependence = function(jsFile,filePath,opt){
   else{
     try {
       var babelResult = babel.transform(jsFile,opt);//这里是不是需要try catch
-      var requirePath = requires_filter(babelResult.ast.program);
+      var requirePath = requires_filter(babelResult.ast.program,PATH.relative(this.rootPath,filePath));
       Log.debug('在文件路径',filePath,'下','[获取的依赖]：',requirePath);
       var _requirePath = [];
       requirePath.forEach((ps)=>{

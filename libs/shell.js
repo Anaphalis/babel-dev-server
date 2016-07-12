@@ -23,12 +23,12 @@ function head (){
           var global = {};
           function require(refPath){
             var relativePath = this.ref[refPath];
-            // console.log(refPath,this.ref);
+             //console.log(refPath,this.ref);
             if(_modules[relativePath].ready)return _modules[relativePath].module.exports;
             return _exec(relativePath)
           }
           function _exec(relativePath){
-            // console.log('_exec',relativePath)
+             //console.log('_exec',relativePath)
             var _module = _modules[relativePath].module;
             if(_modules[relativePath].working){
               //console.log('模块已经在执行中，不能再次执行',_module.exports,relativePath);

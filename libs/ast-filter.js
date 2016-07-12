@@ -7,12 +7,13 @@ var Log = require('./log.js');
 //Expressions：表达式
 //Literal:字面量
 
-function requires_filter(program){
+function requires_filter(program,filePath){
   var ret = [];
   var _CallExpression = parse.CallExpression;
   var _Identifier = parse.Identifier;
   var _NewExpression = parse.NewExpression;
   var useBuffer = false;
+  var isBufferModule = (filePath === 'node_modules/buffer/index.js');
   parse.CallExpression = function (obj){
     _CallExpression(obj);
     if(obj.callee.name === 'require'){
@@ -26,14 +27,14 @@ function requires_filter(program){
     _Identifier(obj);
     if(obj.name==='Buffer'){
       Log.debug('在标识符发现 Buffer');
-      useBuffer = true;
+      if(!isBufferModule)useBuffer = true;
     }
   }
   parse.NewExpression = function (obj){
     _NewExpression(obj);
     if(obj.callee.name==='Buffer'){
       Log.debug('发现 new Buffer');
-      useBuffer = true;
+      if(!isBufferModule)useBuffer = true;
     }
   }
   parse.Program(program);
@@ -49,35 +50,43 @@ function requires_filter(program){
 
 
 var parse = {};
+parse._parse = function(obj,field){
+  var _o = obj;
+  if(field)_o = obj[field];
+  //这里_o可能为null
+  if(_o){
+    if(!_o.type)return Log.warn(`发现特殊的语句,${obj}`)
+    if(!parse[_o.type])return Log.warn(`Parse不存在的表达式类型,${_o.type}`)
+    parse[_o.type](_o);
+  }
+}
 parse.Program = function(obj){
   Log.dev('Program')
   obj.body.forEach((_stat)=>{
-    parse.Statement(_stat)
+    parse._parse(_stat)
   })
 }
 parse.FunctionDeclaration = function(obj){
   Log.dev('parse_function');
-  parse.BlockStatement(obj.body)
+  parse._parse(obj,'body')
 }
 
 parse.BlockStatement = function (obj){
   Log.dev('BlockStatement')
   obj.body.forEach((_stat)=>{
-    parse.Statement(_stat)
+    parse._parse(_stat)
   })
 }
 parse.Expression = function (obj){
-  var type = obj.type;
-  if(!parse[type])return Log.warn(`Parse Expression不存在的表达式类型,${type}`)
-  parse[type](obj);
+  Log.dev('Expression');
+  parse._parse(obj)
 }
  parse.Statement = function(obj){
-  var type = obj.type;
-  if(!parse[type])return Log.warn(`Parse Statement不存在的语句类型,${type}`);
-  parse[type](obj);
+  Log.dev('Statement')
+  parse._parse(obj)
 }
 parse.ExpressionStatement = function (obj){
-  parse.Expression(obj.expression)
+  parse._parse(obj,'expression')
 }
 
 parse.WithStatement = function (obj){
@@ -85,103 +94,85 @@ parse.WithStatement = function (obj){
 }
 parse.ReturnStatement = function (obj){
   Log.dev('ReturnStatement')
-  if(obj.argument&&obj.argument.type==='Expression'){
-    parse.Expression(obj.argument)
-  }
+  parse._parse(obj,'argument')
 }
 parse.LabeledStatement = function (obj){
   Log.dev('LabeledStatement');
-  parse.Statement(obj.body)
+  parse._parse(obj,'body')
 }
 parse.IfStatement = function (obj){
   Log.dev('IfStatement')
-  if(obj.test)parse.Expression(obj.test);
-  parse.Statement(obj.consequent);
-  if(obj.alternate&&obj.alternate.type==='Statements'){
-    parse.Statement(obj.alternate);
-  }
+  parse._parse(obj,'test')
+  parse._parse(obj,'consequent')
+  parse._parse(obj,'alternate')
 }
 parse.SwitchStatement = function (obj){
   Log.dev('SwitchStatement')
-  parse.Expression(obj.discriminant);
+  parse._parse(obj,'discriminant')
   obj.cases.forEach((_case)=>{
-    parse.SwitchCase(_case)
+    parse._parse(_case)
   })
 }
 parse.SwitchCase = function (obj){
   Log.dev('SwitchCase')
-  if(obj.test)parse.Expression(obj.test);
+  parse._parse(obj,'test')
   obj.consequent.forEach((_stat)=>{
-    parse.Statement(_stat);
+    parse._parse(_stat);
   })
 }
 parse.ThrowStatement = function (obj){
   Log.dev('ThrowStatement')
-  parse.Expression(obj.argument);
+  parse._parse(obj,'argument')
 }
 parse.TryStatement = function (obj){
   Log.dev('TryStatement')
-  parse.BlockStatement(obj.block);
-  if(obj.handler)parse.CatchClause(obj.handler);
-  if(obj.finalizer)parse.BlockStatement(obj.finalizer);
+  parse._parse(obj,'block')
+  parse._parse(obj,'handler')
+  parse._parse(obj,'finalizer')
 }
 parse.CatchClause = function (obj){
   Log.dev('CatchClause')
-  //parse.Pattern(obj.param);
-  parse.BlockStatement(obj.body);
+  parse._parse(obj,'body')
 }
 parse.WhileStatement = function (obj){
   Log.dev('WhileStatement')
-  if(obj.test)parse.Expression(obj.test);
-  parse.Statement(obj.body);
+  parse._parse(obj,'test')
+  parse._parse(obj,'body')
 }
 parse.DoWhileStatement = function (obj){
   Log.dev('DoWhileStatement')
-  if(obj.test)parse.Expression(obj.test);
-  parse.Statement(obj.body);
+  parse._parse(obj,'test')
+  parse._parse(obj,'body')
 }
 parse.ForStatement = function (obj){
   Log.dev('ForStatement')
-  if(obj.init){
-    var init = obj.init;
-    if(init.type==='VariableDeclaration'){
-      parse.VariableDeclaration(init);
-    }
-    if(init.type==='Expression'){
-      parse.Expression(init);
-    }
-  }
-  if(obj.test)parse.Expression(obj.test);
-  if(obj.update)parse.Expression(obj.update);
-  parse.Statement(obj.body);
+  parse._parse(obj,'init')
+  parse._parse(obj,'test')
+  parse._parse(obj,'update')
+  parse._parse(obj,'body')
 }
 parse.ForInStatement = function (obj){
   Log.dev('ForInStatement')
-  if(obj.left.type==='VariableDeclaration'){
-    parse.VariableDeclaration(obj.left);
-  }
-  if(obj.left.type==='Pattern'){
-    parse.Pattern(obj.left);
-  }
-  parse.Expression(obj.right);
-  parse.Statement(obj.body);
+  parse._parse(obj,'left')
+  parse._parse(obj,'right')
+  parse._parse(obj,'body')
 }
 parse.VariableDeclaration = function (obj){
   Log.dev('VariableDeclaration')
   obj.declarations.forEach((vd)=>{
-    parse.VariableDeclarator(vd)
+    parse._parse(vd)
   })
 }
 parse.VariableDeclarator = function (obj){
   Log.dev('VariableDeclarator')
-  parse.Pattern(obj.id);
-  if(obj.init)parse.Expression(obj.init);
+  parse._parse(obj,'id')
+  parse._parse(obj,'init')
 }
 parse.ArrayExpression = function (obj){
   Log.dev('ArrayExpression')
   if(obj.elements){
     obj.elements.forEach((ele)=>{
-      parse.Expression(ele)
+      parse._parse(ele)
     })
   }
 }
@@ -189,78 +180,74 @@ parse.ObjectExpression = function (obj){
   Log.dev('ObjectExpression')
   if(obj.properties){
     obj.properties.forEach((prop)=>{
-      parse.Property(prop)
+      parse._parse(prop)
     })
   }
 }
-parse.Property = function (obj){
-  Log.dev('Property')
-  if(obj.key.type.match(/Literal/))parse[obj.key.type](obj.key);
-  if(obj.key.type==='Identifier')parse.Identifier(obj.key);
-  if(obj.value)parse.Expression(obj.value)
+parse.ObjectProperty = function (obj){
+  Log.dev('ObjectProperty')
+  parse._parse(obj,'key')
+  parse._parse(obj,'value')
 }
 parse.FunctionExpression = function (obj){
   Log.dev('FunctionExpression');
-  parse.BlockStatement(obj.body)
+  parse._parse(obj,'body')
 }
 parse.UnaryExpression = function (obj){
   Log.dev('UnaryExpression')
-  //parse.UnaryOperator(obj.operator)
-  parse.Expression(obj.argument)
+  //parse._parse(obj,'operator')
+  parse._parse(obj,'argument')
 }
 parse.UpdateExpression = function (obj){
-  //parse.UpdateOperator(obj.operator)
-  parse.Expression(obj.argument)
+  //parse._parse(obj,'operator')
+  parse._parse(obj,'argument')
 }
 parse.BinaryExpression = function (obj){
-  //parse.BinaryOperator(obj.operator)
-  parse.Expression(obj.left);
-  parse.Expression(obj.right);
+  //parse._parse(obj,'operator')
+  parse._parse(obj,'left')
+  parse._parse(obj,'right')
 }
 parse.AssignmentExpression = function (obj){
-  //parse.AssignmentOperator(obj.operator)
-  if(obj.left.type==='Expression')parse.Expression(obj.left);
-  if(obj.left.type==='Pattern')parse.Pattern(obj.left);
-  parse.Expression(obj.right);
+  Log.dev('AssignmentExpression')
+  //parse._parse(obj,'operator')
+  parse._parse(obj,'left')
+  parse._parse(obj,'right')
 }
 parse.LogicalExpression = function (obj){
-  //parse.LogicalOperator(obj.operator)
-  parse.Expression(obj.left);
-  parse.Expression(obj.right);
+  //parse._parse(obj,'operator')
+  parse._parse(obj,'left')
+  parse._parse(obj,'right')
 }
 parse.MemberExpression = function (obj){
-  Log.dev('MemberExpression')
-  parse.Expression(obj.object);
-  parse.Expression(obj.property);
+  Log.dev('MemberExpression');
+  parse._parse(obj,'object')
+  parse._parse(obj,'property')
 }
 parse.ConditionalExpression = function (obj){
-  if(obj.test)parse.Expression(obj.test);
-  parse.Expression(obj.alternate);
-  parse.Expression(obj.consequent);
+  parse._parse(obj,'test')
+  parse._parse(obj,'alternate')
+  parse._parse(obj,'consequent')
 }
 parse.CallExpression = function (obj){
-  //console.log('函数调用',obj);
-  if(obj.test)parse.Expression(obj.test);
-  parse.Expression(obj.callee);
+  parse._parse(obj,'test')
+  parse._parse(obj,'callee')
   obj.arguments.forEach((exp)=>{
-    parse.Expression(exp);
+    parse._parse(exp);
   })
 }
 parse.NewExpression = function (obj){
   Log.dev('NewExpression');
-  parse.Expression(obj.callee);
+  parse._parse(obj,'callee')
   obj.arguments.forEach((exp)=>{
-    parse.Expression(exp);
+    parse._parse(exp);
   })
 }
 parse.SequenceExpression = function (obj){
   Log.dev('SequenceExpression')
   obj.expressions.forEach((exp)=>{
-    parse.Expression(exp);
+    parse._parse(exp);
   })
 }
-
-
 parse.EmptyStatement = function (obj){}
 parse.DebuggerStatement = function (obj){}
 parse.BreakStatement = function (obj){}
