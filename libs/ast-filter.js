@@ -55,8 +55,13 @@ parse._parse = function(obj,field){
   if(field)_o = obj[field];
   //这里_o可能为null
   if(_o){
-    if(!_o.type)return Log.warn(`发现特殊的语句,${obj}`)
-    if(!parse[_o.type])return Log.warn(`Parse不存在的表达式类型,${_o.type}`)
+    if(!_o.type){
+      return Log.warn(`发现特殊的语句,${obj}`)
+    }
+    if(!parse[_o.type]){
+      //console.log(obj)
+      return Log.warn(`Parse不存在的表达式类型,${_o.type}`)
+    }
     parse[_o.type](_o);
   }
 }
@@ -245,6 +250,14 @@ parse.NewExpression = function (obj){
 parse.SequenceExpression = function (obj){
   Log.dev('SequenceExpression')
   obj.expressions.forEach((exp)=>{
+    parse._parse(exp);
+  })
+}
+parse.ObjectMethod = function (obj){
+  Log.dev('ObjectMethod')
+  parse._parse(obj,'key')
+  parse._parse(obj,'body')
+  obj.params.forEach((exp)=>{
     parse._parse(exp);
   })
 }
