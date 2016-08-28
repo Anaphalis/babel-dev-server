@@ -44,7 +44,7 @@ module.exports = {
 }
 ```
 
-### glup发布示例
+### gulp发布示例
 ``` js
   var gulp = require('gulp');
   var server = require('babel-dev-server');
