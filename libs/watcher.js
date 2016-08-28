@@ -5,6 +5,10 @@ var chokidar = require('chokidar');
 var PATH = require('path');
 var Log = require('./log');
 function Watcher (opts) {
+  if(opts.config.notuse === true){
+    Log.warn(`放弃启动Watcher`);
+    return
+  }
   this.nest = opts.nest;
   this.config = opts.config;
   this.watchDir = this.config.path;

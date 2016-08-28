@@ -5,7 +5,7 @@ var fs = require('fs');
 var buildinMap = require('./buildin.js').buildinMap;
 var RequirePath = require('./requirePath.js');
 var shell = require('./shell.js');
-var Output = require('./output.js');
+var OutputFactory = require('./output');
 var Watcher = require('./watcher.js');
 var Filer = require('./filer.js').Filer;
 var requires_filter = require('./ast-filter.js').requires_filter;
@@ -18,9 +18,9 @@ function Nest(opts){
   this.babelOptions = opts.babelConfig;
   this.rootPath = opts.rootPath;
   this.storePath = opts.storePath;
-  this.output = new Output({nest:this,config:opts.outputConfig});
-  this.watcher = new Watcher({nest:this,config:opts.watchConfig});
   this.orderList = [];//只有进入真正的空闲态，即没有任务需要执行时，如果这里有命令，执行一条命令
+  OutputFactory.useOutput({nest:this,config:opts.outputConfig,rootPath:opts.rootPath});
+  this.watcher = new Watcher({nest:this,config:opts.watchConfig});
   Object.defineProperties(this,{
     //wait parse idle
     state:{
@@ -57,6 +57,7 @@ Nest.prototype.pushOrder = function(order){
   if(order&&order.type&&order.entity){
     Log.debug(`命令队列新加入一条命令,类型：${order.type},实体：${order.entity}`);
     this.orderList.push(order);
+    //在状态不是Idle时，甚至状态未初始化时，先保存命令等待运行时机
     if(this.state === 'idle')this._getOneAndRun();//如果处于空闲态说明没有其他命令，立即执行
   }else{
     Log.error(`错误的命令,类型：${order.type},实体：${order.entity}`);

@@ -1,6 +1,6 @@
 {
   "name": "babel-dev-server",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "author": "anaphalis",
   "description": "use babel devlop ES6 application",
   "main": "libs/index.js",
@@ -17,7 +17,9 @@
     "babel-core": "^6.0.0",
     "browserify": "^13.0.0",
     "chokidar": "^1.6.0",
-    "glob": "^7.0.5"
+    "glob": "^7.0.5",
+    "vinyl":"*",
+    "through2":"*"
   },
   "devDependencies": {
     "chai": "^3.5.0",

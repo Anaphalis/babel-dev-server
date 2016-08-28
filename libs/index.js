@@ -29,8 +29,9 @@ function Starter(config) {
     nest.pushOrder({type:'transform',entity:paths});//这里应该使用文件路径，而不是引用路径
     //要能根据一个路径获得所有模块
   })
-
 }
+
+
 
 //检查+格式化配置
 function _checkConfig(config){
@@ -39,7 +40,13 @@ function _checkConfig(config){
   if(!Array.isArray(config.entry))config.entry = [config.entry];
   //处理watch
   if(!config.watch.path)throw '配置错误,watch path不存在'
-  if(!config.output.port||!config.output.map)throw '配置错误,output path不存在'
+  //处理output
+  if(config.output.mode === 'plugin'){
+
+  }else{
+    config.output.mode === 'server';
+    if(!config.output.port||!config.output.map)throw '配置错误,output path不存在'
+  }
   if(!config.babel)config.babel = {};
   if(!Array.isArray(config.watch.path))config.watch.path = [config.watch.path];
   config.watch.path.forEach((_path)=>{
@@ -49,6 +56,19 @@ function _checkConfig(config){
   config.output.rootPath = rootPath;
   return config
 }
+Starter.output = function(config,callback){
+  //这时应该不用启动output server
+  if(!config)Log.error('缺少配置');
+  if(config.output){
+    config.output.mode = "plugin";
+    config.output.entry = config.entry;
+    config.output.next = callback;
+    //config.log.level = 'warn';
+  }
+  if(config.watch){
+    config.watch.notuse = true;
+  }
+  Starter(config)
 
-
+}
 module.exports = Starter;
