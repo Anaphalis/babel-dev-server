@@ -52,6 +52,9 @@ module.exports = {
   var cleanCSS = require('gulp-clean-css');
   var uglify = require('gulp-uglify');
   var pump = require('pump');//使用pump监测流数据消费结束
+  gulp.task('dev',function() {
+    server(bdsConfig);
+  });
   gulp.task('transform',function(cb){
     bdsConfig.output.exportFormat = 'vinyl-stream';
     server.output(bdsConfig,function(jsstream,cssstream){
