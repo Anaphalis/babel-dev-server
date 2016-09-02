@@ -44,7 +44,7 @@ function _checkConfig(config){
   if(config.output.mode === 'plugin'){
 
   }else{
-    config.output.mode === 'server';
+    config.output.mode = 'server';
     if(!config.output.port||!config.output.map)throw '配置错误,output path不存在'
   }
   if(!config.babel)config.babel = {};
