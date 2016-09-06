@@ -10,6 +10,7 @@ var Watcher = require('./watcher.js');
 var Filer = require('./filer.js').Filer;
 var requires_filter = require('./ast-filter.js').requires_filter;
 var Log = require('./log.js');
+var forceUnixFilePath = require('./util').forceUnixFilePath;
 //cache设计是关键，减少重复作业
 function Nest(opts){
   this.cache = {};
@@ -172,7 +173,7 @@ Nest.prototype._getDependence = function(jsFile,filePath,opt){
         }));
       })
       var code = babelResult.code;
-      if(filePath.match(this.storePath)){
+      if(forceUnixFilePath(filePath).match(forceUnixFilePath(this.storePath))){
         //console.log('来自node_modules的直接使用转换前的代码,fuck some gl-matrix',filePath);
         code = jsFile;
       }

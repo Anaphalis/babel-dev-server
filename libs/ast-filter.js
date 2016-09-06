@@ -1,4 +1,5 @@
 var Log = require('./log.js');
+var forceUnixFilePath = require('./util.js').forceUnixFilePath;
 //从AST中提取信息
 //参考https://github.com/estree/estree/blob/master/spec.md
 //Functions 函数
@@ -13,7 +14,7 @@ function requires_filter(program,filePath){
   var _Identifier = parse.Identifier;
   var _NewExpression = parse.NewExpression;
   var useBuffer = false;
-  var isBufferModule = (filePath === 'node_modules/buffer/index.js');
+  var isBufferModule = (forceUnixFilePath(filePath) === 'node_modules/buffer/index.js');
   parse.CallExpression = function (obj){
     _CallExpression(obj);
     if(obj.callee.name === 'require'){

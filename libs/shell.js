@@ -1,8 +1,11 @@
+var forceUnixFilePath = require('./util.js').forceUnixFilePath;
 function wrap (path,module){
+  var path = forceUnixFilePath(path);
   var ref = {};
   var buffer = '';
   module.dependence.forEach((rpo)=>{
-    ref[rpo['refPath']] = rpo['relativePath'];
+    var _rpath = forceUnixFilePath(rpo['relativePath']);
+    ref[rpo['refPath']] = _rpath;
     if(rpo['refPath'] === 'buffer') buffer = `var Buffer = require('buffer');\r\n`;
   })
   var _code = function(){
@@ -51,6 +54,7 @@ function all (head,module,portal){
           })('${portal}');`
 }
 function jsFile (portal,modules){
+  var portal = forceUnixFilePath(portal);
   var _modules = [];
   Object.keys(modules).forEach((path)=>{
     _modules.push(wrap(path,modules[path]));
