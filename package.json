@@ -1,6 +1,6 @@
 {
   "name": "babel-dev-server",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "author": "anaphalis",
   "description": "use babel devlop ES6 application",
   "main": "libs/index.js",

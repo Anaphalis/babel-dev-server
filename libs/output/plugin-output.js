@@ -15,6 +15,7 @@ function PluginOutput(opts){
     var finished = 0;
     set.forEach((relativeFilePath)=>{
       //这里要把相对路径转成绝对路径
+      relativeFilePath = PATH.normalize(relativeFilePath);
       opts.nest.pushOrder({
         type:'getFile',
         entity:{path:relativeFilePath,type:'js'},
